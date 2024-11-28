@@ -1,1 +1,2 @@
 *.pth filter=lfs diff=lfs merge=lfs -text
+File1/* filter=lfs diff=lfs merge=lfs -text
