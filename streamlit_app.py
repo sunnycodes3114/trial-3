@@ -69,14 +69,16 @@ def get_car_parts_dicts(img_dir, ann_dir):
     
     return dataset_dicts
 
-# Paths to your dataset
-data_dir = "File1"
+# Dynamically construct paths
+data_dir = os.path.join(os.getcwd(), "File1")
 images_dir = os.path.join(data_dir, "img")
 annotations_dir = os.path.join(data_dir, "ann")
+model_weights_path = os.path.join(os.getcwd(), "model_final.pth")
+demo_image_path = os.path.join(os.getcwd(), "gettyimages-157561077-1024x1024.jpg")
 
 # Register the dataset
 for d in ["train", "val"]:
-    #DatasetCatalog.register("car_parts_" + d, lambda d=d: get_car_parts_dicts(images_dir, annotations_dir))
+    # DatasetCatalog.register("car_parts_" + d, lambda d=d: get_car_parts_dicts(images_dir, annotations_dir))
     MetadataCatalog.get("car_parts_" + d).set(thing_classes=["Dent", "Scratch", "Broken part", "Paint chip", "Missing part", "Flaking", "Corrosion", "Cracked"])
 
 # Load config and model
@@ -85,7 +87,7 @@ cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rc
 cfg.DATASETS.TRAIN = ("car_parts_train",)
 cfg.DATASETS.TEST = ("car_parts_val",)
 cfg.MODEL.ROI_HEADS.NUM_CLASSES = 8 
-cfg.MODEL.WEIGHTS = "model_final (1).pth"
+cfg.MODEL.WEIGHTS = model_weights_path
 cfg.MODEL.DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Create predictor
@@ -101,7 +103,6 @@ use_demo_image = st.checkbox("Use Demo Image")
 # Display the demo image or user-uploaded image
 if use_demo_image:
     # Load and display the demo image
-    demo_image_path = "gettyimages-157561077-1024x1024.jpg"  # Specify the path to a sample demo image
     image = Image.open(demo_image_path)
     st.image(image, caption='Demo Image', use_column_width=True)
 else:
