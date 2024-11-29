@@ -1,8 +1,9 @@
 import os
+import requests
 import json
 import streamlit as st
 from PIL import Image
-from detectron2.data import DatasetCatalog, MetadataCatalog
+from detectron2.data import MetadataCatalog
 from detectron2.config import get_cfg
 from detectron2 import model_zoo
 from detectron2.engine import DefaultPredictor
@@ -10,6 +11,20 @@ import cv2
 import torch
 import numpy as np
 from detectron2.utils.visualizer import Visualizer
+
+# Dropbox direct download link
+model_url = "https://www.dropbox.com/scl/fi/m8e7tr4vy887rrmedvpok/model_final-1.pth?rlkey=bf5ov8r1m89u9qp88alpuvmse&st=htkj8ux1&dl=1"
+model_path = "model_final.pth"
+
+# Ensure model file is downloaded
+if not os.path.exists(model_path):
+    st.write("Downloading model weights from Dropbox...")
+    response = requests.get(model_url, stream=True)
+    with open(model_path, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:  # Filter out keep-alive chunks
+                f.write(chunk)
+    st.write("Model weights downloaded.")
 
 # Define the dataset registration function
 def get_car_parts_dicts(img_dir, ann_dir):
@@ -69,16 +84,13 @@ def get_car_parts_dicts(img_dir, ann_dir):
     
     return dataset_dicts
 
-# Dynamically construct paths
-data_dir = os.path.join(os.getcwd(), "File1")
+# Paths to your dataset
+data_dir = "File1"
 images_dir = os.path.join(data_dir, "img")
 annotations_dir = os.path.join(data_dir, "ann")
-model_weights_path = os.path.join(os.getcwd(), "model_final.pth")
-demo_image_path = os.path.join(os.getcwd(), "gettyimages-157561077-1024x1024.jpg")
 
 # Register the dataset
 for d in ["train", "val"]:
-    # DatasetCatalog.register("car_parts_" + d, lambda d=d: get_car_parts_dicts(images_dir, annotations_dir))
     MetadataCatalog.get("car_parts_" + d).set(thing_classes=["Dent", "Scratch", "Broken part", "Paint chip", "Missing part", "Flaking", "Corrosion", "Cracked"])
 
 # Load config and model
@@ -87,7 +99,7 @@ cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rc
 cfg.DATASETS.TRAIN = ("car_parts_train",)
 cfg.DATASETS.TEST = ("car_parts_val",)
 cfg.MODEL.ROI_HEADS.NUM_CLASSES = 8 
-cfg.MODEL.WEIGHTS = model_weights_path
+cfg.MODEL.WEIGHTS = model_path  # Use dynamically downloaded model
 cfg.MODEL.DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Create predictor
@@ -103,6 +115,7 @@ use_demo_image = st.checkbox("Use Demo Image")
 # Display the demo image or user-uploaded image
 if use_demo_image:
     # Load and display the demo image
+    demo_image_path = "gettyimages-157561077-1024x1024.jpg"  # Specify the path to a sample demo image
     image = Image.open(demo_image_path)
     st.image(image, caption='Demo Image', use_column_width=True)
 else:
